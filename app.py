@@ -183,5 +183,5 @@ if uploaded_file is not None:
     with st.expander('Ver tabela de violações de Nelson (Condutividade e MR)'):
         st.dataframe(df_ponto[['Data', 'Condutividade', 'MR', 'cond_violacoes_nelson', 'violacoes_nelson']])
 else:
-    st.info("Nenhum arquivo carregado. Por favor, faça upload de um arquivo CSV para visualizar os gráficos.")
+    st.info("Faça upload do arquivo CSV para visualizar os gráficos.")
     st.stop() 
