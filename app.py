@@ -82,111 +82,106 @@ def add_reference_lines(ax, refs, initial_label=None, color='gray', linestyle='-
 
 # --- INTERFACE STREAMLIT ---
 
-st.markdown("Faça upload do arquivo de dados (.csv) ou use o arquivo padrão.")
+st.markdown("Faça upload do arquivo de dados (.csv) para começar.")
 uploaded_file = st.file_uploader("Arquivo CSV de Condutividade", type=["csv"])
 
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file, sep=';', encoding='latin1')
-else:
-    try:
-        df = pd.read_csv('Base de Dados de Condutividade.csv', sep=';', encoding='latin1')
-        st.info('Usando arquivo padrão: Base de Dados de Condutividade.csv')
-    except Exception as e:
-        st.error(f"Erro ao carregar o arquivo padrão: {e}")
+    # Conversão de datas e tipos
+    if not pd.api.types.is_datetime64_any_dtype(df['Data']):
+        df['Data'] = pd.to_datetime(df['Data'], dayfirst=True, errors='coerce')
+    if df['Condutividade'].dtype == object:
+        df['Condutividade'] = df['Condutividade'].str.replace(',', '.', regex=False).astype(float)
+    df['Condutividade'] = pd.to_numeric(df['Condutividade'], errors='coerce')
+    df = df.sort_values(by=['Ponto', 'Data'])
+
+    # Seleção de ponto
+    pontos = df['Ponto'].unique()
+    ponto = st.selectbox('Selecione o ponto para visualizar:', pontos)
+    df_ponto = df[df['Ponto'] == ponto].copy().sort_values('Data')
+
+    # Limpeza de NaNs
+    initial_rows = len(df_ponto)
+    df_ponto.dropna(subset=['Data', 'Condutividade'], inplace=True)
+    if len(df_ponto) < 2:
+        st.error(f"Dados insuficientes para o ponto '{ponto}' após limpeza. São necessários pelo menos 2 pontos.")
         st.stop()
 
-# Conversão de datas e tipos
-if not pd.api.types.is_datetime64_any_dtype(df['Data']):
-    df['Data'] = pd.to_datetime(df['Data'], dayfirst=True, errors='coerce')
-if df['Condutividade'].dtype == object:
-    df['Condutividade'] = df['Condutividade'].str.replace(',', '.', regex=False).astype(float)
-df['Condutividade'] = pd.to_numeric(df['Condutividade'], errors='coerce')
-df = df.sort_values(by=['Ponto', 'Data'])
+    # Cálculo de MR
+    df_ponto['MR'] = df_ponto['Condutividade'].diff().abs()
 
-# Seleção de ponto
-pontos = df['Ponto'].unique()
-ponto = st.selectbox('Selecione o ponto para visualizar:', pontos)
-df_ponto = df[df['Ponto'] == ponto].copy().sort_values('Data')
+    d2_constant_for_n2 = 1.128
+    mr_media = df_ponto['MR'].dropna().mean()
+    if pd.isna(mr_media):
+        st.error(f"MR média não pôde ser calculada para o ponto '{ponto}'. Verifique os dados de Condutividade.")
+        st.stop()
 
-# Limpeza de NaNs
-initial_rows = len(df_ponto)
-df_ponto.dropna(subset=['Data', 'Condutividade'], inplace=True)
-if len(df_ponto) < 2:
-    st.error(f"Dados insuficientes para o ponto '{ponto}' após limpeza. São necessários pelo menos 2 pontos.")
-    st.stop()
+    std_condutividade_minitab = mr_media / d2_constant_for_n2
+    media_condutividade = df_ponto['Condutividade'].mean()
+    ucl_condutividade = media_condutividade + 3 * std_condutividade_minitab
+    lcl_condutividade = media_condutividade - 3 * std_condutividade_minitab
 
-# Cálculo de MR
-df_ponto['MR'] = df_ponto['Condutividade'].diff().abs()
+    D4 = 3.267
+    D3 = 0
+    ucl_mr = D4 * mr_media
+    lcl_mr = D3 * mr_media
 
-d2_constant_for_n2 = 1.128
-mr_media = df_ponto['MR'].dropna().mean()
-if pd.isna(mr_media):
-    st.error(f"MR média não pôde ser calculada para o ponto '{ponto}'. Verifique os dados de Condutividade.")
-    st.stop()
+    # Regras de Nelson para Condutividade (I-Chart)
+    df_ponto['cond_viol_nelson_1'] = (df_ponto['Condutividade'] > ucl_condutividade) | (df_ponto['Condutividade'] < lcl_condutividade)
+    df_ponto['cond_viol_nelson_2'] = check_nelson_rule_2(df_ponto['Condutividade'], media_condutividade)
+    df_ponto['cond_viol_nelson_3'] = check_nelson_rule_3(df_ponto['Condutividade'])
+    df_ponto['cond_viol_nelson_4'] = check_nelson_rule_4(df_ponto['Condutividade'])
+    df_ponto['cond_violacoes_nelson'] = df_ponto.apply(lambda row: mark_nelson_violations(row, prefix='cond_'), axis=1)
 
-std_condutividade_minitab = mr_media / d2_constant_for_n2
-media_condutividade = df_ponto['Condutividade'].mean()
-ucl_condutividade = media_condutividade + 3 * std_condutividade_minitab
-lcl_condutividade = media_condutividade - 3 * std_condutividade_minitab
+    # Regras de Nelson para MR
+    df_ponto['viol_nelson_1'] = (df_ponto['MR'] > ucl_mr) | (df_ponto['MR'] < lcl_mr)
+    df_ponto['viol_nelson_2'] = check_nelson_rule_2(df_ponto['MR'], mr_media)
+    df_ponto['viol_nelson_3'] = check_nelson_rule_3(df_ponto['MR'])
+    df_ponto['viol_nelson_4'] = check_nelson_rule_4(df_ponto['MR'])
+    df_ponto['violacoes_nelson'] = df_ponto.apply(lambda row: mark_nelson_violations(row), axis=1)
 
-D4 = 3.267
-D3 = 0
-ucl_mr = D4 * mr_media
-lcl_mr = D3 * mr_media
+    # --- GRÁFICOS ---
+    fig, axes = plt.subplots(2, 1, figsize=(14, 10), sharex=True)
 
-# Regras de Nelson para Condutividade (I-Chart)
-df_ponto['cond_viol_nelson_1'] = (df_ponto['Condutividade'] > ucl_condutividade) | (df_ponto['Condutividade'] < lcl_condutividade)
-df_ponto['cond_viol_nelson_2'] = check_nelson_rule_2(df_ponto['Condutividade'], media_condutividade)
-df_ponto['cond_viol_nelson_3'] = check_nelson_rule_3(df_ponto['Condutividade'])
-df_ponto['cond_viol_nelson_4'] = check_nelson_rule_4(df_ponto['Condutividade'])
-df_ponto['cond_violacoes_nelson'] = df_ponto.apply(lambda row: mark_nelson_violations(row, prefix='cond_'), axis=1)
+    # Gráfico 1: Condutividade
+    sns.lineplot(data=df_ponto, x='Data', y='Condutividade', marker='o', ax=axes[0])
+    axes[0].axhline(media_condutividade, color='blue', linestyle='--', label='Média')
+    axes[0].axhline(ucl_condutividade, color='red', linestyle='--', label='UCL')
+    axes[0].axhline(lcl_condutividade, color='red', linestyle='--', label='LCL')
+    add_reference_lines(axes[0], [1.1, 1.2, 1.3], initial_label=True)
+    axes[0].set_title(f'Condutividade - {ponto}')
+    axes[0].set_ylabel('Condutividade (µS/cm)')
+    add_stats_text(axes[0], df_ponto, ucl_condutividade, lcl_condutividade, media_condutividade, std_condutividade_minitab, decimal_places=4)
+    axes[0].legend()
+    axes[0].grid(False)
+    axes[0].set_yticks(np.arange(0, 1.5, 0.1))
+    violacoes_condutividade = df_ponto[df_ponto['cond_violacoes_nelson'] != '']
+    add_nelson_plots(axes[0], violacoes_condutividade, 'Condutividade', plot_label='Violação Nelson (I-Chart)')
 
-# Regras de Nelson para MR
-df_ponto['viol_nelson_1'] = (df_ponto['MR'] > ucl_mr) | (df_ponto['MR'] < lcl_mr)
-df_ponto['viol_nelson_2'] = check_nelson_rule_2(df_ponto['MR'], mr_media)
-df_ponto['viol_nelson_3'] = check_nelson_rule_3(df_ponto['MR'])
-df_ponto['viol_nelson_4'] = check_nelson_rule_4(df_ponto['MR'])
-df_ponto['violacoes_nelson'] = df_ponto.apply(lambda row: mark_nelson_violations(row), axis=1)
+    # Gráfico 2: MR
+    sns.lineplot(data=df_ponto, x='Data', y='MR', marker='o', color='orange', ax=axes[1])
+    axes[1].axhline(mr_media, color='green', linestyle='--', label='MR Média')
+    axes[1].axhline(ucl_mr, color='red', linestyle='--', label='UCL MR')
+    axes[1].axhline(lcl_mr, color='red', linestyle='--', label='LCL MR')
+    add_reference_lines(axes[1], [1.1, 1.2, 1.3], initial_label=False)
+    axes[1].set_title(f'Amplitude Móvel (MR) - {ponto}')
+    axes[1].set_ylabel('MR (|diferença|)')
+    add_stats_text(axes[1], df_ponto, ucl_mr, lcl_mr, mr_media, prefix='MR ', decimal_places=3)
+    axes[1].legend()
+    axes[1].grid(False)
+    axes[1].set_yticks(np.arange(0, max(df_ponto['MR'].max(), 1.3) + 0.1, 0.1))
+    axes[1].xaxis.set_major_locator(mdates.WeekdayLocator(interval=2))
+    axes[1].xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
+    axes[1].tick_params(axis='x', rotation=45)
+    violacoes_mr = df_ponto[df_ponto['violacoes_nelson'] != '']
+    add_nelson_plots(axes[1], violacoes_mr, 'MR', plot_label='Violação Nelson (MR-Chart)')
 
-# --- GRÁFICOS ---
-fig, axes = plt.subplots(2, 1, figsize=(14, 10), sharex=True)
+    plt.tight_layout()
+    st.pyplot(fig)
 
-# Gráfico 1: Condutividade
-sns.lineplot(data=df_ponto, x='Data', y='Condutividade', marker='o', ax=axes[0])
-axes[0].axhline(media_condutividade, color='blue', linestyle='--', label='Média')
-axes[0].axhline(ucl_condutividade, color='red', linestyle='--', label='UCL')
-axes[0].axhline(lcl_condutividade, color='red', linestyle='--', label='LCL')
-add_reference_lines(axes[0], [1.1, 1.2, 1.3], initial_label=True)
-axes[0].set_title(f'Condutividade - {ponto}')
-axes[0].set_ylabel('Condutividade (µS/cm)')
-add_stats_text(axes[0], df_ponto, ucl_condutividade, lcl_condutividade, media_condutividade, std_condutividade_minitab, decimal_places=4)
-axes[0].legend()
-axes[0].grid(False)
-axes[0].set_yticks(np.arange(0, 1.5, 0.1))
-violacoes_condutividade = df_ponto[df_ponto['cond_violacoes_nelson'] != '']
-add_nelson_plots(axes[0], violacoes_condutividade, 'Condutividade', plot_label='Violação Nelson (I-Chart)')
-
-# Gráfico 2: MR
-sns.lineplot(data=df_ponto, x='Data', y='MR', marker='o', color='orange', ax=axes[1])
-axes[1].axhline(mr_media, color='green', linestyle='--', label='MR Média')
-axes[1].axhline(ucl_mr, color='red', linestyle='--', label='UCL MR')
-axes[1].axhline(lcl_mr, color='red', linestyle='--', label='LCL MR')
-add_reference_lines(axes[1], [1.1, 1.2, 1.3], initial_label=False)
-axes[1].set_title(f'Amplitude Móvel (MR) - {ponto}')
-axes[1].set_ylabel('MR (|diferença|)')
-add_stats_text(axes[1], df_ponto, ucl_mr, lcl_mr, mr_media, prefix='MR ', decimal_places=3)
-axes[1].legend()
-axes[1].grid(False)
-axes[1].set_yticks(np.arange(0, max(df_ponto['MR'].max(), 1.3) + 0.1, 0.1))
-axes[1].xaxis.set_major_locator(mdates.WeekdayLocator(interval=2))
-axes[1].xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
-axes[1].tick_params(axis='x', rotation=45)
-violacoes_mr = df_ponto[df_ponto['violacoes_nelson'] != '']
-add_nelson_plots(axes[1], violacoes_mr, 'MR', plot_label='Violação Nelson (MR-Chart)')
-
-plt.tight_layout()
-st.pyplot(fig)
-
-# Exibe tabela de violações
-with st.expander('Ver tabela de violações de Nelson (Condutividade e MR)'):
-    st.dataframe(df_ponto[['Data', 'Condutividade', 'MR', 'cond_violacoes_nelson', 'violacoes_nelson']]) 
+    # Exibe tabela de violações
+    with st.expander('Ver tabela de violações de Nelson (Condutividade e MR)'):
+        st.dataframe(df_ponto[['Data', 'Condutividade', 'MR', 'cond_violacoes_nelson', 'violacoes_nelson']])
+else:
+    st.info("Nenhum arquivo carregado. Por favor, faça upload de um arquivo CSV para visualizar os gráficos.")
+    st.stop() 
