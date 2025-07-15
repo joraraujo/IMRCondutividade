@@ -179,9 +179,6 @@ if uploaded_file is not None:
     plt.tight_layout()
     st.pyplot(fig)
 
-    # Exibe tabela de violações
-    with st.expander('Ver tabela de violações de Nelson (Condutividade e MR)'):
-        st.dataframe(df_ponto[['Data', 'Condutividade', 'MR', 'cond_violacoes_nelson', 'violacoes_nelson']])
 else:
     st.info("Faça upload do arquivo CSV para visualizar os gráficos.")
     st.stop() 
