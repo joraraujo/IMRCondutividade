@@ -6,7 +6,7 @@ WORKDIR /app
 
 # Copia os arquivos de dependências
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org --index-url http://pypi.org/simple -r requirements.txt
 
 # Copia o restante da aplicação
 COPY . .
