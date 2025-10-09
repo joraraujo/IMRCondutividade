@@ -82,7 +82,15 @@ def add_reference_lines(ax, refs, initial_label=None, color='gray', linestyle='-
 
 # --- INTERFACE STREAMLIT ---
 
-st.write("Parâmetro : ") st.text_input(label, value="")
+st.subheader("Parâmetros de Controle")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    parametro = st.text_input("Parâmetro", value="Condutividade")
+    limite_alerta_txt = st.text_input("Limite de Alerta", value="")
+    limite_acao_txt = st.text_input("Limite de Ação", value="")
+    limite_controle_txt = st.text_input("Limite de Controle", value="")
 
 st.markdown("Faça upload do arquivo de dados (.csv) para começar.")
 uploaded_file = st.file_uploader("Arquivo CSV de Condutividade", type=["csv"])
@@ -184,5 +192,6 @@ if uploaded_file is not None:
 else:
     st.info("Faça upload do arquivo CSV para visualizar os gráficos.")
     st.stop() 
+
 
 
