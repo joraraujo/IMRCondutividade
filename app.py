@@ -88,6 +88,7 @@ col1, col2 = st.columns(2)
 
 with col1:
     parametro = st.text_input("Parâmetro", value="")
+    um = st.text_input("Unidade de medida", value="")
     alerta_txt = st.text_input("Limite de Alerta", value="")
     acao_txt = st.text_input("Limite de Ação", value="")
     especificacao_txt = st.text_input("Limite de Especificação", value="")
@@ -111,9 +112,9 @@ if uploaded_file is not None:
     # Conversão de datas e tipos
     if not pd.api.types.is_datetime64_any_dtype(df['Data']):
         df['Data'] = pd.to_datetime(df['Data'], dayfirst=True, errors='coerce')
-    if df['Condutividade'].dtype == object:
-        df['Condutividade'] = df['Condutividade'].str.replace(',', '.', regex=False).astype(float)
-    df['Condutividade'] = pd.to_numeric(df['Condutividade'], errors='coerce')
+    if df['parametro'].dtype == object:
+        df['parametro'] = df['parametro'].str.replace(',', '.', regex=False).astype(float)
+    df['parametro'] = pd.to_numeric(df['parametro'], errors='coerce')
     df = df.sort_values(by=['Ponto', 'Data'])
 
     # Seleção de ponto
@@ -123,13 +124,13 @@ if uploaded_file is not None:
 
     # Limpeza de NaNs
     initial_rows = len(df_ponto)
-    df_ponto.dropna(subset=['Data', 'Condutividade'], inplace=True)
+    df_ponto.dropna(subset=['Data', 'parametro'], inplace=True)
     if len(df_ponto) < 2:
         st.error(f"Dados insuficientes para o ponto '{ponto}' após limpeza. São necessários pelo menos 2 pontos.")
         st.stop()
 
     # Cálculo de MR
-    df_ponto['MR'] = df_ponto['Condutividade'].diff().abs()
+    df_ponto['MR'] = df_ponto['parametro'].diff().abs()
 
     d2_constant_for_n2 = 1.128
     mr_media = df_ponto['MR'].dropna().mean()
@@ -170,8 +171,8 @@ if uploaded_file is not None:
     axes[0].axhline(ucl_condutividade, color='red', linestyle='--', label='UCL')
     axes[0].axhline(lcl_condutividade, color='red', linestyle='--', label='LCL')
     add_reference_lines(axes[0], [alerta, acao, especificacao], initial_label=True)
-    axes[0].set_title(f'Condutividade - {ponto}')
-    axes[0].set_ylabel('Condutividade (µS/cm)')
+    axes[0].set_title(f'{parametro} - {ponto}')
+    axes[0].set_ylabel(f'parametro ({um})')
     add_stats_text(axes[0], df_ponto, ucl_condutividade, lcl_condutividade, media_condutividade, std_condutividade_minitab, decimal_places=4)
     axes[0].legend()
     axes[0].grid(False)
@@ -203,6 +204,7 @@ if uploaded_file is not None:
 else:
     st.info("Faça upload do arquivo CSV para visualizar os gráficos.")
     st.stop() 
+
 
 
 
