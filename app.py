@@ -77,7 +77,7 @@ def add_nelson_plots(ax, df_violacoes, y_col, plot_label='Violação Nelson', te
 
 def add_reference_lines(ax, refs, initial_label=None, color='gray', linestyle='--'):
     for i, ref in enumerate(refs):
-        label = f'{ref} µS/cm' if (initial_label and i == 0) else None
+        label = f'{ref} {um}' if (initial_label and i == 0) else None
         ax.axhline(ref, color=color, linestyle=linestyle, label=label)
 
 # --- INTERFACE STREAMLIT ---
@@ -204,6 +204,7 @@ if uploaded_file is not None:
 else:
     st.info("Faça upload do arquivo CSV para visualizar os gráficos.")
     st.stop() 
+
 
 
 
