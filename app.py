@@ -7,8 +7,8 @@ import numpy as np
 import datetime
 import io
 
-st.set_page_config(page_title="Gráficos I-MR - Condutividade", layout="wide")
-st.title("Gráficos I-MR - Condutividade")
+st.set_page_config(page_title="Gráficos I-MR - Carta de controle", layout="wide")
+st.title("Gráficos I-MR - Carta de controle")
 
 # --- FUNÇÕES AUXILIARES (copiadas do script original) ---
 def check_nelson_rule_2(series, mean):
@@ -87,10 +87,21 @@ st.subheader("Parâmetros de Controle")
 col1, col2 = st.columns(2)
 
 with col1:
-    parametro = st.text_input("Parâmetro", value="Condutividade")
-    limite_alerta_txt = st.text_input("Limite de Alerta", value="")
-    limite_acao_txt = st.text_input("Limite de Ação", value="")
-    limite_controle_txt = st.text_input("Limite de Controle", value="")
+    parametro = st.text_input("Parâmetro", value="")
+    alerta_txt = st.text_input("Limite de Alerta", value="")
+    acao_txt = st.text_input("Limite de Ação", value="")
+    especificacao_txt = st.text_input("Limite de Especificação", value="")
+
+# Conversão dos valores digitados para float 
+def to_float_or_none(value):
+    try:
+        return float(value.replace(",", "."))
+    except:
+        return None
+
+alerta = to_float_or_none(limite_alerta_txt)
+acao = to_float_or_none(limite_acao_txt)
+especificacao = to_float_or_none(limite_controle_txt)
 
 st.markdown("Faça upload do arquivo de dados (.csv) para começar.")
 uploaded_file = st.file_uploader("Arquivo CSV de Condutividade", type=["csv"])
@@ -158,7 +169,7 @@ if uploaded_file is not None:
     axes[0].axhline(media_condutividade, color='blue', linestyle='--', label='Média')
     axes[0].axhline(ucl_condutividade, color='red', linestyle='--', label='UCL')
     axes[0].axhline(lcl_condutividade, color='red', linestyle='--', label='LCL')
-    add_reference_lines(axes[0], [1.1, 1.2, 1.3], initial_label=True)
+    add_reference_lines(axes[0], [alerta, acao, especificacao], initial_label=True)
     axes[0].set_title(f'Condutividade - {ponto}')
     axes[0].set_ylabel('Condutividade (µS/cm)')
     add_stats_text(axes[0], df_ponto, ucl_condutividade, lcl_condutividade, media_condutividade, std_condutividade_minitab, decimal_places=4)
@@ -173,7 +184,7 @@ if uploaded_file is not None:
     axes[1].axhline(mr_media, color='green', linestyle='--', label='MR Média')
     axes[1].axhline(ucl_mr, color='red', linestyle='--', label='UCL MR')
     axes[1].axhline(lcl_mr, color='red', linestyle='--', label='LCL MR')
-    add_reference_lines(axes[1], [1.1, 1.2, 1.3], initial_label=False)
+    add_reference_lines(axes[1], [alerta, acao, especificacao], initial_label=False)
     axes[1].set_title(f'Amplitude Móvel (MR) - {ponto}')
     axes[1].set_ylabel('MR (|diferença|)')
     add_stats_text(axes[1], df_ponto, ucl_mr, lcl_mr, mr_media, prefix='MR ', decimal_places=3)
@@ -192,6 +203,7 @@ if uploaded_file is not None:
 else:
     st.info("Faça upload do arquivo CSV para visualizar os gráficos.")
     st.stop() 
+
 
 
 
