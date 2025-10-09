@@ -82,6 +82,8 @@ def add_reference_lines(ax, refs, initial_label=None, color='gray', linestyle='-
 
 # --- INTERFACE STREAMLIT ---
 
+st.write("Parâmetro")
+
 st.markdown("Faça upload do arquivo de dados (.csv) para começar.")
 uploaded_file = st.file_uploader("Arquivo CSV de Condutividade", type=["csv"])
 
@@ -182,3 +184,4 @@ if uploaded_file is not None:
 else:
     st.info("Faça upload do arquivo CSV para visualizar os gráficos.")
     st.stop() 
+
