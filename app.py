@@ -112,9 +112,9 @@ if uploaded_file is not None:
     # Conversão de datas e tipos
     if not pd.api.types.is_datetime64_any_dtype(df['Data']):
         df['Data'] = pd.to_datetime(df['Data'], dayfirst=True, errors='coerce')
-    if df['parametro'].dtype == object:
-        df['parametro'] = df['parametro'].str.replace(',', '.', regex=False).astype(float)
-    df['parametro'] = pd.to_numeric(df['parametro'], errors='coerce')
+    if df['Condutividade'].dtype == object:
+        df['Condutividade'] = df['Condutividade'].str.replace(',', '.', regex=False).astype(float)
+    df['Condutividade'] = pd.to_numeric(df['Condutividade'], errors='coerce')
     df = df.sort_values(by=['Ponto', 'Data'])
 
     # Seleção de ponto
@@ -124,13 +124,13 @@ if uploaded_file is not None:
 
     # Limpeza de NaNs
     initial_rows = len(df_ponto)
-    df_ponto.dropna(subset=['Data', 'parametro'], inplace=True)
+    df_ponto.dropna(subset=['Data', 'Condutividade'], inplace=True)
     if len(df_ponto) < 2:
         st.error(f"Dados insuficientes para o ponto '{ponto}' após limpeza. São necessários pelo menos 2 pontos.")
         st.stop()
 
     # Cálculo de MR
-    df_ponto['MR'] = df_ponto['parametro'].diff().abs()
+    df_ponto['MR'] = df_ponto['Condutividade'].diff().abs()
 
     d2_constant_for_n2 = 1.128
     mr_media = df_ponto['MR'].dropna().mean()
@@ -204,6 +204,7 @@ if uploaded_file is not None:
 else:
     st.info("Faça upload do arquivo CSV para visualizar os gráficos.")
     st.stop() 
+
 
 
 
