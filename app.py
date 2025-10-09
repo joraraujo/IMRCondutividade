@@ -99,9 +99,9 @@ def to_float_or_none(value):
     except:
         return None
 
-alerta = to_float_or_none(limite_alerta_txt)
-acao = to_float_or_none(limite_acao_txt)
-especificacao = to_float_or_none(limite_controle_txt)
+alerta = to_float_or_none(alerta_txt)
+acao = to_float_or_none(acao_txt)
+especificacao = to_float_or_none(especificacao_txt)
 
 st.markdown("Faça upload do arquivo de dados (.csv) para começar.")
 uploaded_file = st.file_uploader("Arquivo CSV de Condutividade", type=["csv"])
@@ -203,6 +203,7 @@ if uploaded_file is not None:
 else:
     st.info("Faça upload do arquivo CSV para visualizar os gráficos.")
     st.stop() 
+
 
 
 
