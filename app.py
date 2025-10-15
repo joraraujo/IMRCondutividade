@@ -191,7 +191,8 @@ if uploaded_file is not None:
     add_stats_text(axes[1], df_ponto, ucl_mr, lcl_mr, mr_media, prefix='MR ', decimal_places=3)
     axes[1].legend()
     axes[1].grid(False)
-    axes[1].set_yticks(np.arange(0, max(df_ponto['MR'].max(), 1.3) + 0.1, 0.1))
+    axes[1].set_yticks(np.arange(0, 1.5, 0.1))
+    #axes[1].set_yticks(np.arange(0, max(df_ponto['MR'].max(), 1.3) + 0.1, 0.1))
     axes[1].xaxis.set_major_locator(mdates.WeekdayLocator(interval=2))
     axes[1].xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
     axes[1].tick_params(axis='x', rotation=45)
@@ -204,6 +205,7 @@ if uploaded_file is not None:
 else:
     st.info("Faça upload do arquivo CSV para visualizar os gráficos.")
     st.stop() 
+
 
 
 
