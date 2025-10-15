@@ -112,9 +112,9 @@ if uploaded_file is not None:
     # Conversão de datas e tipos
     if not pd.api.types.is_datetime64_any_dtype(df['Data']):
         df['Data'] = pd.to_datetime(df['Data'], dayfirst=True, errors='coerce')
-    if df['Condutividade'].dtype == object:
-        df['Condutividade'] = df['Condutividade'].str.replace(',', '.', regex=False).astype(float)
-    df['Condutividade'] = pd.to_numeric(df['Condutividade'], errors='coerce')
+    if df['Resultado'].dtype == object:
+        df['Resultado'] = df['Resultado'].str.replace(',', '.', regex=False).astype(float)
+    df['Resultado'] = pd.to_numeric(df['Resultado'], errors='coerce')
     df = df.sort_values(by=['Ponto', 'Data'])
 
     # Seleção de ponto
@@ -124,13 +124,13 @@ if uploaded_file is not None:
 
     # Limpeza de NaNs
     initial_rows = len(df_ponto)
-    df_ponto.dropna(subset=['Data', 'Condutividade'], inplace=True)
+    df_ponto.dropna(subset=['Data', 'Resultado'], inplace=True)
     if len(df_ponto) < 2:
         st.error(f"Dados insuficientes para o ponto '{ponto}' após limpeza. São necessários pelo menos 2 pontos.")
         st.stop()
 
     # Cálculo de MR
-    df_ponto['MR'] = df_ponto['Condutividade'].diff().abs()
+    df_ponto['MR'] = df_ponto['Resultado'].diff().abs()
 
     d2_constant_for_n2 = 1.128
     mr_media = df_ponto['MR'].dropna().mean()
@@ -139,7 +139,7 @@ if uploaded_file is not None:
         st.stop()
 
     std_condutividade_minitab = mr_media / d2_constant_for_n2
-    media_condutividade = df_ponto['Condutividade'].mean()
+    media_condutividade = df_ponto['Resultado'].mean()
     ucl_condutividade = media_condutividade + 3 * std_condutividade_minitab
     lcl_condutividade = media_condutividade - 3 * std_condutividade_minitab
 
@@ -148,11 +148,11 @@ if uploaded_file is not None:
     ucl_mr = D4 * mr_media
     lcl_mr = D3 * mr_media
 
-    # Regras de Nelson para Condutividade (I-Chart)
-    df_ponto['cond_viol_nelson_1'] = (df_ponto['Condutividade'] > ucl_condutividade) | (df_ponto['Condutividade'] < lcl_condutividade)
-    df_ponto['cond_viol_nelson_2'] = check_nelson_rule_2(df_ponto['Condutividade'], media_condutividade)
-    df_ponto['cond_viol_nelson_3'] = check_nelson_rule_3(df_ponto['Condutividade'])
-    df_ponto['cond_viol_nelson_4'] = check_nelson_rule_4(df_ponto['Condutividade'])
+    # Regras de Nelson para (I-Chart)
+    df_ponto['cond_viol_nelson_1'] = (df_ponto['Resultado'] > ucl_condutividade) | (df_ponto['Resultado'] < lcl_condutividade)
+    df_ponto['cond_viol_nelson_2'] = check_nelson_rule_2(df_ponto['Resultado'], media_condutividade)
+    df_ponto['cond_viol_nelson_3'] = check_nelson_rule_3(df_ponto['Resultado'])
+    df_ponto['cond_viol_nelson_4'] = check_nelson_rule_4(df_ponto['Resultado'])
     df_ponto['cond_violacoes_nelson'] = df_ponto.apply(lambda row: mark_nelson_violations(row, prefix='cond_'), axis=1)
 
     # Regras de Nelson para MR
@@ -166,7 +166,7 @@ if uploaded_file is not None:
     fig, axes = plt.subplots(2, 1, figsize=(14, 10), sharex=True)
 
     # Gráfico 1: Condutividade
-    sns.lineplot(data=df_ponto, x='Data', y='Condutividade', marker='o', ax=axes[0])
+    sns.lineplot(data=df_ponto, x='Data', y='Resultado', marker='o', ax=axes[0])
     axes[0].axhline(media_condutividade, color='blue', linestyle='--', label='Média')
     axes[0].axhline(ucl_condutividade, color='red', linestyle='--', label='UCL')
     axes[0].axhline(lcl_condutividade, color='red', linestyle='--', label='LCL')
@@ -178,7 +178,7 @@ if uploaded_file is not None:
     axes[0].grid(False)
     axes[0].set_yticks(np.arange(0, 1.5, 0.1))
     violacoes_condutividade = df_ponto[df_ponto['cond_violacoes_nelson'] != '']
-    add_nelson_plots(axes[0], violacoes_condutividade, 'Condutividade', plot_label='Violação Nelson (I-Chart)')
+    add_nelson_plots(axes[0], violacoes_condutividade, 'Resultado', plot_label='Violação Nelson (I-Chart)')
 
     # Gráfico 2: MR
     sns.lineplot(data=df_ponto, x='Data', y='MR', marker='o', color='orange', ax=axes[1])
@@ -204,6 +204,7 @@ if uploaded_file is not None:
 else:
     st.info("Faça upload do arquivo CSV para visualizar os gráficos.")
     st.stop() 
+
 
 
 
