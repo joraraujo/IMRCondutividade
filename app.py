@@ -92,9 +92,9 @@ with col1:
     alerta_txt = st.text_input("Limite de Alerta", value="")
     acao_txt = st.text_input("Limite de Ação", value="")
     especificacao_txt = st.text_input("Limite de Especificação", value="")   
-    escala_min = st.text_input("Escala Mínima do Gráfico (Eixo y)", value="")
-    escala_max = st.text_input("Escala Máxima do Gráfico (Eixo y)", value="")
-    intervalo_escala = st.text_input("Intervalo da Escala do Gráfico (Eixo y)", value="")
+    #escala_min = st.text_input("Escala Mínima do Gráfico (Eixo y)", value="")
+   #escala_max = st.text_input("Escala Máxima do Gráfico (Eixo y)", value="")
+    #intervalo_escala = st.text_input("Intervalo da Escala do Gráfico (Eixo y)", value="")
 
 # Conversão dos valores digitados para float 
 def to_float_or_none(value):
@@ -194,8 +194,8 @@ if uploaded_file is not None:
     add_stats_text(axes[1], df_ponto, ucl_mr, lcl_mr, mr_media, prefix='MR ', decimal_places=3)
     axes[1].legend()
     axes[1].grid(False)
-    axes[1].set_yticks(np.arange(0, 1.5, 0.1))
-    #axes[1].set_yticks(np.arange(0, max(df_ponto['MR'].max(), 1.3) + 0.1, 0.1))
+    #axes[1].set_yticks(np.arange(0, 1.5, 0.1))
+    axes[1].set_yticks(np.arange(0, max(df_ponto['MR'].max(), 1.3) + 0.1, 0.1))
     axes[1].xaxis.set_major_locator(mdates.WeekdayLocator(interval=2))
     axes[1].xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
     axes[1].tick_params(axis='x', rotation=45)
@@ -208,6 +208,7 @@ if uploaded_file is not None:
 else:
     st.info("Faça upload do arquivo CSV para visualizar os gráficos.")
     st.stop() 
+
 
 
 
