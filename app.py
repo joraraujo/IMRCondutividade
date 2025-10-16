@@ -87,11 +87,11 @@ st.subheader("Parâmetros de Controle")
 col1, col2 = st.columns(2)
 
 with col1:
-    parametro = st.text_input("Parâmetro", value="")
+    parametro = st.text_input("Nome do Parâmetro", value="")
     um = st.text_input("Unidade de medida", value="")
-    alerta_txt = st.text_input("Limite de Alerta", value="")
-    acao_txt = st.text_input("Limite de Ação", value="")
-    especificacao_txt = st.text_input("Limite de Especificação", value="")   
+    alerta_txt = st.text_input("Limite de Alerta (usar ponto para separar casas decimais)", value="")
+    acao_txt = st.text_input("Limite de Ação (usar ponto para separar casas decimais)", value="")
+    especificacao_txt = st.text_input("Limite de Especificação (usar ponto para separar casas decimais)", value="")   
     #escala_min = st.text_input("Escala Mínima do Gráfico (Eixo y)", value="")
    #escala_max = st.text_input("Escala Máxima do Gráfico (Eixo y)", value="")
     #intervalo_escala = st.text_input("Intervalo da Escala do Gráfico (Eixo y)", value="")
@@ -208,6 +208,7 @@ if uploaded_file is not None:
 else:
     st.info("Faça upload do arquivo CSV para visualizar os gráficos.")
     st.stop() 
+
 
 
 
