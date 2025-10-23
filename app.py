@@ -92,9 +92,9 @@ with col1:
     alerta_txt = st.text_input("Limite de Alerta (usar ponto para separar casas decimais)", value="")
     acao_txt = st.text_input("Limite de Ação (usar ponto para separar casas decimais)", value="")
     especificacao_txt = st.text_input("Limite de Especificação (usar ponto para separar casas decimais)", value="")   
-    escala_min = st.text_input("Escala Mínima do Gráfico (Eixo y)", value="")
-    escala_max = st.text_input("Escala Máxima do Gráfico (Eixo y)", value="")
-    intervalo_escala = st.text_input("Intervalo da Escala do Gráfico (Eixo y)", value="")
+    escala_min_txt = st.text_input("Escala Mínima do Gráfico (Eixo y)", value="")
+    escala_max_tx = st.text_input("Escala Máxima do Gráfico (Eixo y)", value="")
+    intervalo_escala_txt = st.text_input("Intervalo da Escala do Gráfico (Eixo y)", value="")
 
 # Conversão dos valores digitados para float 
 def to_float_or_none(value):
@@ -106,6 +106,9 @@ def to_float_or_none(value):
 alerta = to_float_or_none(alerta_txt)
 acao = to_float_or_none(acao_txt)
 especificacao = to_float_or_none(especificacao_txt)
+escala_min = to_float_or_none(escala_min_txt)
+escala_max = to_float_or_none(escala_max_tx)
+intervalo_escala = to_float_or_none(intervalo_escala_txt)
 
 st.markdown("Faça upload do arquivo de dados (.csv) para começar.")
 uploaded_file = st.file_uploader("Arquivo CSV de Condutividade", type=["csv"])
