@@ -76,9 +76,20 @@ def add_nelson_plots(ax, df_violacoes, y_col, plot_label='Violação Nelson', te
                 )
 
 def add_reference_lines(ax, refs, initial_label=None, color='gray', linestyle='--'):
+    # Percorre referências, ignorando valores None/NaN para evitar erros do matplotlib
+    first_labeled = False
     for i, ref in enumerate(refs):
-        label = f'{ref} {um}' if (initial_label and i == 0) else None
-        ax.axhline(ref, color=color, linestyle=linestyle, label=label)
+        if ref is None or (isinstance(ref, float) and np.isnan(ref)):
+            continue
+        label = None
+        if initial_label and not first_labeled:
+            label = f'{ref} {um}'
+            first_labeled = True
+        try:
+            ax.axhline(ref, color=color, linestyle=linestyle, label=label)
+        except Exception:
+            # se axhline falhar por qualquer razão, ignorar a referência
+            continue
 
 # --- INTERFACE STREAMLIT ---
 
@@ -182,8 +193,14 @@ if uploaded_file is not None:
     add_stats_text(axes[0], df_ponto, ucl_condutividade, lcl_condutividade, media_condutividade, std_condutividade_minitab, decimal_places=4)
     axes[0].legend()
     axes[0].grid(False)
-    #axes[0].set_yticks(np.arange(0, 1.5, 0.1))
-    axes[0].set_yticks(np.arange(escala_min, escala_max, intervalo_escala))
+    # definir yticks apenas se valores válidos foram informados
+    if (escala_min is not None and escala_max is not None and intervalo_escala is not None
+            and intervalo_escala > 0 and escala_min < escala_max):
+        try:
+            axes[0].set_yticks(np.arange(escala_min, escala_max + intervalo_escala/2.0, intervalo_escala))
+        except Exception:
+            pass
+
     violacoes_condutividade = df_ponto[df_ponto['cond_violacoes_nelson'] != '']
     add_nelson_plots(axes[0], violacoes_condutividade, 'Resultado', plot_label='Violação Nelson (I-Chart)')
 
@@ -198,18 +215,17 @@ if uploaded_file is not None:
     add_stats_text(axes[1], df_ponto, ucl_mr, lcl_mr, mr_media, prefix='MR ', decimal_places=3)
     axes[1].legend()
     axes[1].grid(False)
-    axes[1].set_yticks(np.arange(escala_min, escala_max, intervalo_escala))
-    #axes[1].set_yticks(np.arange(0, 1.5, 0.1))
-    #axes[1].set_yticks(np.arange(0, max(df_ponto['MR'].max(), 1.3) + 0.1, 0.1))
-    axes[1].xaxis.set_major_locator(mdates.WeekdayLocator(interval=2))
-    axes[1].xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
-    axes[1].tick_params(axis='x', rotation=45)
-    violacoes_mr = df_ponto[df_ponto['violacoes_nelson'] != '']
-    add_nelson_plots(axes[1], violacoes_mr, 'MR', plot_label='Violação Nelson (MR-Chart)')
+    # aplicar yticks validados também para o gráfico de MR
+    if (escala_min is not None and escala_max is not None and intervalo_escala is not None
+            and intervalo_escala > 0 and escala_min < escala_max):
+        try:
+            axes[1].set_yticks(np.arange(escala_min, escala_max + intervalo_escala/2.0, intervalo_escala))
+        except Exception:
+            pass
 
     plt.tight_layout()
     st.pyplot(fig)
 
 else:
     st.info("Faça upload do arquivo CSV para visualizar os gráficos.")
-    st.stop() 
+    st.stop()
