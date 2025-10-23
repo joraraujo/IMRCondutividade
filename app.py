@@ -92,9 +92,9 @@ with col1:
     alerta_txt = st.text_input("Limite de Alerta (usar ponto para separar casas decimais)", value="")
     acao_txt = st.text_input("Limite de Ação (usar ponto para separar casas decimais)", value="")
     especificacao_txt = st.text_input("Limite de Especificação (usar ponto para separar casas decimais)", value="")   
-    escala_min_txt = st.text_input("Escala Mínima do Gráfico (Eixo y)", value="")
-    escala_max_tx = st.text_input("Escala Máxima do Gráfico (Eixo y)", value="")
-    intervalo_escala_txt = st.text_input("Intervalo da Escala do Gráfico (Eixo y)", value="")
+    #escala_min = st.text_input("Escala Mínima do Gráfico (Eixo y)", value="")
+   #escala_max = st.text_input("Escala Máxima do Gráfico (Eixo y)", value="")
+    #intervalo_escala = st.text_input("Intervalo da Escala do Gráfico (Eixo y)", value="")
 
 # Conversão dos valores digitados para float 
 def to_float_or_none(value):
@@ -106,9 +106,6 @@ def to_float_or_none(value):
 alerta = to_float_or_none(alerta_txt)
 acao = to_float_or_none(acao_txt)
 especificacao = to_float_or_none(especificacao_txt)
-escala_min = to_float_or_none(escala_min_txt)
-escala_max = to_float_or_none(escala_max_tx)
-intervalo_escala = to_float_or_none(intervalo_escala_txt)
 
 st.markdown("Faça upload do arquivo de dados (.csv) para começar.")
 uploaded_file = st.file_uploader("Arquivo CSV de Condutividade", type=["csv"])
@@ -182,8 +179,7 @@ if uploaded_file is not None:
     add_stats_text(axes[0], df_ponto, ucl_condutividade, lcl_condutividade, media_condutividade, std_condutividade_minitab, decimal_places=4)
     axes[0].legend()
     axes[0].grid(False)
-    #axes[0].set_yticks(np.arange(0, 1.5, 0.1))
-    axes[0].set_yticks(np.arange(escala_min, escala_max, intervalo_escala))
+    axes[0].set_yticks(np.arange(0, 1.5, 0.1))
     violacoes_condutividade = df_ponto[df_ponto['cond_violacoes_nelson'] != '']
     add_nelson_plots(axes[0], violacoes_condutividade, 'Resultado', plot_label='Violação Nelson (I-Chart)')
 
@@ -199,8 +195,7 @@ if uploaded_file is not None:
     axes[1].legend()
     axes[1].grid(False)
     #axes[1].set_yticks(np.arange(0, 1.5, 0.1))
-    #axes[1].set_yticks(np.arange(0, max(df_ponto['MR'].max(), 1.3) + 0.1, 0.1))
-    axes[1].set_yticks(np.arange(escala_min, escala_max, intervalo_escala))
+    axes[1].set_yticks(np.arange(0, max(df_ponto['MR'].max(), 1.3) + 0.1, 0.1))
     axes[1].xaxis.set_major_locator(mdates.WeekdayLocator(interval=2))
     axes[1].xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
     axes[1].tick_params(axis='x', rotation=45)
@@ -213,17 +208,3 @@ if uploaded_file is not None:
 else:
     st.info("Faça upload do arquivo CSV para visualizar os gráficos.")
     st.stop() 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
