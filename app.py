@@ -77,6 +77,9 @@ def add_nelson_plots(ax, df_violacoes, y_col, plot_label='Violação Nelson', te
 
 def add_reference_lines(ax, refs, initial_label=None, color='gray', linestyle='--'):
     for i, ref in enumerate(refs):
+        # pular refs não informadas (None)
+        if ref is None:
+            continue
         label = f'{ref} {um}' if (initial_label and i == 0) else None
         ax.axhline(ref, color=color, linestyle=linestyle, label=label)
 
@@ -103,9 +106,13 @@ def to_float_or_none(value):
     except:
         return None
 
+# Conversão dos textos numéricos para floats (ou None)
 alerta = to_float_or_none(alerta_txt)
 acao = to_float_or_none(acao_txt)
 especificacao = to_float_or_none(especificacao_txt)
+escala_min_val = to_float_or_none(escala_min)
+escala_max_val = to_float_or_none(escala_max)
+intervalo_escala_val = to_float_or_none(intervalo_escala)
 
 st.markdown("Faça upload do arquivo de dados (.csv) para começar.")
 uploaded_file = st.file_uploader("Arquivo CSV de Condutividade", type=["csv"])
@@ -175,12 +182,17 @@ if uploaded_file is not None:
     axes[0].axhline(lcl_condutividade, color='red', linestyle='--', label='LCL')
     add_reference_lines(axes[0], [alerta, acao, especificacao], initial_label=True)
     axes[0].set_title(f'{parametro} - {ponto}')
-    axes[0].set_ylabel(f'parametro ({um})')
+    axes[0].set_ylabel(f'{parametro} ({um})')
     add_stats_text(axes[0], df_ponto, ucl_condutividade, lcl_condutividade, media_condutividade, std_condutividade_minitab, decimal_places=4)
     axes[0].legend()
     axes[0].grid(False)
-    #axes[0].set_yticks(np.arange(0, 1.5, 0.1))
-    axes[0].set_yticks(np.arange(escala_min, escala_max, intervalo_escala))
+    # definir yticks apenas se valores válidos foram informados
+    if escala_min_val is not None and escala_max_val is not None and intervalo_escala_val not in (None, 0):
+        try:
+            axes[0].set_yticks(np.arange(escala_min_val, escala_max_val + intervalo_escala_val/2.0, intervalo_escala_val))
+        except Exception:
+            pass
+
     violacoes_condutividade = df_ponto[df_ponto['cond_violacoes_nelson'] != '']
     add_nelson_plots(axes[0], violacoes_condutividade, 'Resultado', plot_label='Violação Nelson (I-Chart)')
 
@@ -195,9 +207,13 @@ if uploaded_file is not None:
     add_stats_text(axes[1], df_ponto, ucl_mr, lcl_mr, mr_media, prefix='MR ', decimal_places=3)
     axes[1].legend()
     axes[1].grid(False)
-    #axes[1].set_yticks(np.arange(0, 1.5, 0.1))
-    #axes[1].set_yticks(np.arange(0, max(df_ponto['MR'].max(), 1.3) + 0.1, 0.1))
-    axes[1].set_yticks(np.arange(escala_min, escala_max, intervalo_escala))
+    # aplicar yticks validados também para o gráfico de MR
+    if escala_min_val is not None and escala_max_val is not None and intervalo_escala_val not in (None, 0):
+        try:
+            axes[1].set_yticks(np.arange(escala_min_val, escala_max_val + intervalo_escala_val/2.0, intervalo_escala_val))
+        except Exception:
+            pass
+
     axes[1].xaxis.set_major_locator(mdates.WeekdayLocator(interval=2))
     axes[1].xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
     axes[1].tick_params(axis='x', rotation=45)
@@ -209,7 +225,7 @@ if uploaded_file is not None:
 
 else:
     st.info("Faça upload do arquivo CSV para visualizar os gráficos.")
-    st.stop() 
+    st.stop()
 
 
 
