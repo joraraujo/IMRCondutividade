@@ -216,7 +216,7 @@ if uploaded_file is not None:
     # axes[0].set_yticks(np.arange(escala_min, max(df_ponto['MR'].max(), especificacao) + 0.1, intervalo_escala))
     if all(v is not None for v in [escala_min, escala_max, intervalo_escala]):
     # Gráfico de Resultados (I-Chart)
-    axes[0].set_yticks(np.arange(escala_min, escala_max + 0.1, intervalo_escala))
+        axes[0].set_yticks(np.arange(escala_min, escala_max + 0.1, intervalo_escala))
     violacoes_condutividade = df_ponto[df_ponto['cond_violacoes_nelson'] != '']
     add_nelson_plots(axes[0], violacoes_condutividade, 'Resultado', plot_label='Violação Nelson (I-Chart)')
 
@@ -248,5 +248,6 @@ else:
     st.info("Faça upload do arquivo CSV para visualizar os gráficos.")
 
     st.stop() 
+
 
 
