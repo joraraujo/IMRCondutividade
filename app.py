@@ -113,45 +113,16 @@ intervalo_escala = to_float_or_none(intervalo_escala_txt)
 st.markdown("Faça upload do arquivo de dados (.csv) para começar.")
 uploaded_file = st.file_uploader("Arquivo CSV de Condutividade", type=["csv"])
 
+      
 if uploaded_file is not None:
-    try:
-        # 1. Leitura inicial
-        df = pd.read_csv(uploaded_file, sep=';', encoding='latin1')
-        
-        # 2. VALIDAÇÃO DE COLUNAS (O SEU TESTE DEVE CAIR AQUI)
-        colunas_obrigatorias = ['Data', 'Ponto', 'Resultado']
-        colunas_faltantes = [c for c in colunas_obrigatorias if c not in df.columns]
-        
-        if colunas_faltantes:
-            st.error(f"⚠️ **Coluna não encontrada:** Não localizamos: {', '.join(colunas_faltantes)}")
-            st.info(f"O seu arquivo possui as colunas: {', '.join(df.columns.tolist())}. Ajuste para 'Resultado'.")
-            st.stop() # Isso impede que o erro 'KeyError' (linha 121) aconteça
-
-        # 3. TRATAMENTO DE TIPOS (Só acontece se as colunas existirem)
-        # Conversão de Data
-        if not pd.api.types.is_datetime64_any_dtype(df['Data']):
-            df['Data'] = pd.to_datetime(df['Data'], dayfirst=True, errors='coerce')
-        
-        # Conversão de Resultado (Antiga linha 121, agora protegida)
-        if df['Resultado'].dtype == object:
-            df['Resultado'] = df['Resultado'].str.replace(',', '.', regex=False)
-        
-        df['Resultado'] = pd.to_numeric(df['Resultado'], errors='coerce')
-        df = df.sort_values(by=['Ponto', 'Data'])
-
-    except Exception as e:
-        st.error(f"❌ Erro ao ler o arquivo: {e}")
-        st.stop()
-        
-#if uploaded_file is not None:
-   # df = pd.read_csv(uploaded_file, sep=';', encoding='latin1')
-    # Conversão de datas e tipos
-    #if not pd.api.types.is_datetime64_any_dtype(df['Data']):
-   #     df['Data'] = pd.to_datetime(df['Data'], dayfirst=True, errors='coerce')
-  #  if df['Resultado'].dtype == object:
-   #     df['Resultado'] = df['Resultado'].str.replace(',', '.', regex=False).astype(float)
-   # df['Resultado'] = pd.to_numeric(df['Resultado'], errors='coerce')
-   # df = df.sort_values(by=['Ponto', 'Data'])
+    df = pd.read_csv(uploaded_file, sep=';', encoding='latin1')
+     Conversão de datas e tipos
+    if not pd.api.types.is_datetime64_any_dtype(df['Data']):
+        df['Data'] = pd.to_datetime(df['Data'], dayfirst=True, errors='coerce')
+    if df['Resultado'].dtype == object:
+        df['Resultado'] = df['Resultado'].str.replace(',', '.', regex=False).astype(float)
+    df['Resultado'] = pd.to_numeric(df['Resultado'], errors='coerce')
+    df = df.sort_values(by=['Ponto', 'Data'])
 
     # Seleção de ponto
     pontos = df['Ponto'].unique()
@@ -248,6 +219,7 @@ else:
     st.info("Faça upload do arquivo CSV para visualizar os gráficos.")
 
     st.stop() 
+
 
 
 
