@@ -5,7 +5,6 @@ import matplotlib.dates as mdates
 import seaborn as sns
 import numpy as np
 import datetime
-import io
 
 st.set_page_config(page_title="Gráficos I-MR - Carta de controle", layout="wide")
 st.title("Gráficos I-MR - Carta de controle")
@@ -64,7 +63,7 @@ def add_reference_lines(ax, refs, initial_label=None, color='gray', linestyle='-
             label = f'{ref} {un_med}' if (initial_label and i == 0) else None
             ax.axhline(ref, color=color, linestyle=linestyle, label=label)
 
-# --- INTERFACE STREAMLIT ---
+# --- INTERFACE ---
 st.subheader("Parâmetros de Controle")
 col1, col2 = st.columns(2)
 
@@ -74,22 +73,16 @@ with col1:
     alerta_txt = st.text_input("Limite de Alerta", value="")
     acao_txt = st.text_input("Limite de Ação", value="")
     especificacao_txt = st.text_input("Limite de Especificação", value="")   
-    escala_min_txt = st.text_input("Escala Mínima do Gráfico (Eixo y)", value="")
-    escala_max_txt = st.text_input("Escala Máxima do Gráfico (Eixo y)", value="")
-    intervalo_escala_txt = st.text_input("Intervalo da Escala do Gráfico (Eixo y)", value="")
+    escala_min_txt = st.text_input("Escala Mínima", value="")
+    escala_max_txt = st.text_input("Escala Máxima", value="")
+    intervalo_escala_txt = st.text_input("Intervalo da Escala", value="")
 
-def to_float_or_none(value):
-    try:
-        return float(value.replace(",", "."))
-    except:
-        return None
+def to_float(val):
+    try: return float(val.replace(",", "."))
+    except: return None
 
-alerta = to_float_or_none(alerta_txt)
-acao = to_float_or_none(acao_txt)
-especificacao = to_float_or_none(especificacao_txt)
-escala_min = to_float_or_none(escala_min_txt)
-escala_max = to_float_or_none(escala_max_txt)
-intervalo_escala = to_float_or_none(intervalo_escala_txt)
+alerta, acao, espec = to_float(alerta_txt), to_float(acao_txt), to_float(especificacao_txt)
+e_min, e_max, e_int = to_float(escala_min_txt), to_float(escala_max_txt), to_float(intervalo_escala_txt)
 
 st.markdown("---")
 uploaded_file = st.file_uploader("Upload do arquivo CSV (Separador ';')", type=["csv"])
@@ -98,15 +91,12 @@ if uploaded_file is not None:
     try:
         df = pd.read_csv(uploaded_file, sep=';', encoding='latin1')
         
-        # Validação amigável de colunas
-        colunas_obrigatorias = ['Data', 'Ponto', 'Resultado']
-        faltantes = [c for c in colunas_obrigatorias if c not in df.columns]
-        if faltantes:
-            st.error(f"⚠️ Erro: Colunas não encontradas: {', '.join(faltantes)}")
-            st.info(f"O seu arquivo contém: {', '.join(df.columns.tolist())}")
+        # Validação de Colunas
+        if not all(c in df.columns for c in ['Data', 'Ponto', 'Resultado']):
+            st.error(f"⚠️ Erro: Colunas esperadas não encontradas. O arquivo contém: {list(df.columns)}")
             st.stop()
 
-        # Conversão de datas e tipos
+        # Conversão
         df['Data'] = pd.to_datetime(df['Data'], dayfirst=True, errors='coerce')
         if df['Resultado'].dtype == object:
             df['Resultado'] = df['Resultado'].str.replace(',', '.', regex=False).astype(float)
@@ -114,60 +104,46 @@ if uploaded_file is not None:
         df.dropna(subset=['Data', 'Resultado'], inplace=True)
         df = df.sort_values(by=['Ponto', 'Data'])
 
-        pontos = df['Ponto'].unique()
-        ponto = st.selectbox('Selecione o ponto:', pontos)
-        df_ponto = df[df['Ponto'] == ponto].copy()
+        ponto = st.selectbox('Selecione o ponto:', df['Ponto'].unique())
+        df_p = df[df['Ponto'] == ponto].copy()
 
-        if len(df_ponto) < 2:
-            st.warning("Dados insuficientes (mínimo 2 pontos).")
+        if len(df_p) < 2:
+            st.warning("Pontos insuficientes para cálculo.")
             st.stop()
 
-        # Cálculos Estatísticos
-        df_ponto['MR'] = df_ponto['Resultado'].diff().abs()
-        mr_media = df_ponto['MR'].mean()
-        std_minitab = mr_media / 1.128
-        media_cond = df_ponto['Resultado'].mean()
-        ucl_cond = media_cond + 3 * std_minitab
-        lcl_cond = media_cond - 3 * std_minitab
-        ucl_mr = 3.267 * mr_media
+        # Estatísticas
+        df_p['MR'] = df_p['Resultado'].diff().abs()
+        mr_m = df_p['MR'].mean()
+        std_m = mr_m / 1.128
+        media_r = df_p['Resultado'].mean()
+        ucl_r, lcl_r = media_r + 3*std_m, media_r - 3*std_m
+        ucl_mr = 3.267 * mr_m
 
-        # Regras de Nelson
-        df_ponto['cond_viol_nelson_1'] = (df_ponto['Resultado'] > ucl_cond) | (df_ponto['Resultado'] < lcl_cond)
-        df_ponto['cond_viol_nelson_2'] = check_nelson_rule_2(df_ponto['Resultado'], media_cond)
-        df_ponto['cond_viol_nelson_3'] = check_nelson_rule_3(df_ponto['Resultado'])
-        df_ponto['cond_viol_nelson_4'] = check_nelson_rule_4(df_ponto['Resultado'])
-        df_ponto['cond_violacoes_nelson'] = df_ponto.apply(lambda r: mark_nelson_violations(r, 'cond_'), axis=1)
+        # Violações
+        df_p['c_v1'] = (df_p['Resultado'] > ucl_r) | (df_p['Resultado'] < lcl_r)
+        df_p['c_v2'] = check_nelson_rule_2(df_p['Resultado'], media_r)
+        df_p['cond_violacoes_nelson'] = df_p.apply(lambda r: mark_nelson_violations(r, 'c_'), axis=1)
 
-        # Plotagem
+        # Gráficos
         fig, axes = plt.subplots(2, 1, figsize=(14, 10), sharex=True)
-
-        # Gráfico I
-        sns.lineplot(data=df_ponto, x='Data', y='Resultado', marker='o', ax=axes[0])
-        axes[0].axhline(media_cond, color='blue', linestyle='--', label='Média')
-        axes[0].axhline(ucl_cond, color='red', linestyle='--', label='UCL')
-        axes[0].axhline(lcl_cond, color='red', linestyle='--', label='LCL')
-        add_reference_lines(axes[0], [alerta, acao, especificacao], initial_label=True)
-        add_stats_text(axes[0], df_ponto, ucl_cond, lcl_cond, media_cond, std_minitab, decimal_places=4)
+        sns.lineplot(data=df_p, x='Data', y='Resultado', marker='o', ax=axes[0])
+        axes[0].axhline(media_r, color='blue', ls='--')
+        add_reference_lines(axes[0], [alerta, acao, espec], initial_label=True)
         
-        # Gráfico MR
-        sns.lineplot(data=df_ponto, x='Data', y='MR', marker='o', color='orange', ax=axes[1])
-        axes[1].axhline(mr_media, color='green', linestyle='--', label='MR Média')
-        axes[1].axhline(ucl_mr, color='red', linestyle='--', label='UCL MR')
-        add_stats_text(axes[1], df_ponto, ucl_mr, 0, mr_media, prefix='MR ', decimal_places=3)
+        sns.lineplot(data=df_p, x='Data', y='MR', marker='o', color='orange', ax=axes[1])
+        axes[1].axhline(mr_m, color='green', ls='--')
 
-        # Aplicação da Escala Customizada (Tratamento de Indentação Corrigido)
-        if all(v is not None for v in [escala_min, escala_max, intervalo_escala]):
-            if escala_max > escala_min and intervalo_escala > 0:
-                ticks = np.arange(escala_min, escala_max + 0.1, intervalo_escala)
-                axes[0].set_yticks(ticks)
-                axes[1].set_yticks(ticks)
+        # Escala Manual
+        if all(v is not None for v in [e_min, e_max, e_int]) and e_max > e_min:
+            ticks = np.arange(e_min, e_max + 0.1, e_int)
+            axes[0].set_yticks(ticks)
+            axes[1].set_yticks(ticks)
 
-        # Formatação Final
         axes[1].xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
         plt.xticks(rotation=45)
         st.pyplot(fig)
 
     except Exception as e:
-        st.error(f"Erro inesperado: {e}")
+        st.error(f"Erro ao processar: {e}")
 else:
-    st.info("Aguardando upload do arquivo CSV.")
+    st.info("Por favor, faça o upload do arquivo.")
